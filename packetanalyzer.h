@@ -2,19 +2,16 @@
 #define PACKETANALYZER_H
 
 #include <QFileDialog>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QNetworkInterface>
-#include <QNetworkReply>
 #include <QTableWidgetItem>
-#include <GeneralUtils.h>
 #include <IPv4Layer.h>
 #include <IPv6Layer.h>
 #include <PcapFileDevice.h>
 #include <PcapLiveDeviceList.h>
-#include <SystemUtils.h>
+#include "llmmanager.h"
+#include "packetmanager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -39,14 +36,17 @@ private slots:
     void save();
     void load();
     void llmRequest();
-    void llmResponse(QNetworkReply *);
+    void llmResponse(QString);
+    void llmError();
 
 private:
     Ui::PacketAnalyzer *ui;
     pcpp::PcapLiveDevice* m_dev = nullptr;
     pcpp::RawPacketVector m_packets;
-    QNetworkAccessManager *m_manager = new QNetworkAccessManager();
-    QString getProtocolTypeAsString(pcpp::ProtocolType);
+    LlmManager *m_llm = new LlmManager();
+
     void clear();
+    void uiLock();
+    void uiUnlock();
 };
 #endif // PACKETANALYZER_H

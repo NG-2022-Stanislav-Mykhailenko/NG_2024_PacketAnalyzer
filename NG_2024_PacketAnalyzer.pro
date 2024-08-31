@@ -9,11 +9,15 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    llmmanager.cpp \
     main.cpp \
-    packetanalyzer.cpp
+    packetanalyzer.cpp \
+    packetmanager.cpp
 
 HEADERS += \
-    packetanalyzer.h
+    llmmanager.h \
+    packetanalyzer.h \
+    packetmanager.h
 
 FORMS += \
     packetanalyzer.ui
