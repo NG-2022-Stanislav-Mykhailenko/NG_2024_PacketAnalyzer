@@ -111,6 +111,33 @@ QString PacketManager::getProtocolTypeAsString(pcpp::ProtocolType protocolType)
     }
 }
 
+QString PacketManager::printHttpMethod(pcpp::HttpRequestLayer::HttpMethod httpMethod)
+{
+    switch (httpMethod)
+    {
+    case pcpp::HttpRequestLayer::HttpGET:
+        return "GET";
+    case pcpp::HttpRequestLayer::HttpPOST:
+        return "POST";
+    case pcpp::HttpRequestLayer::HttpHEAD:
+        return "HEAD";
+    case pcpp::HttpRequestLayer::HttpPUT:
+        return "PUT";
+    case pcpp::HttpRequestLayer::HttpDELETE:
+        return "DELETE";
+    case pcpp::HttpRequestLayer::HttpCONNECT:
+        return "CONNECT";
+    case pcpp::HttpRequestLayer::HttpOPTIONS:
+        return "OPTIONS";
+    case pcpp::HttpRequestLayer::HttpTRACE:
+        return "TRACE";
+    case pcpp::HttpRequestLayer::HttpPATCH:
+        return "PATCH";
+    default:
+        return "Other";
+    }
+}
+
 QStringList PacketManager::getPacketSourceAndDestination(pcpp::Packet* packet)
 {
     QString sourceIP = "Unknown";
@@ -140,5 +167,79 @@ QStringList PacketManager::getPacketSourceAndDestination(pcpp::Packet* packet)
 
 QString PacketManager::getPacketData(pcpp::RawPacket *rawPacket)
 {
-    return QString::fromStdString(pcpp::byteArrayToHexString(rawPacket->getRawData(), rawPacket->getRawDataLen()));
+    pcpp::Packet parsedPacket(rawPacket);
+    QString packetData = "";
+
+    QStringList sourceAndDestination = getPacketSourceAndDestination(&parsedPacket);
+
+    QString protocol = "Unknown";
+
+    for (pcpp::Layer* curLayer = parsedPacket.getFirstLayer(); curLayer != NULL; curLayer = curLayer->getNextLayer())
+    {
+        protocol = PacketManager::getProtocolTypeAsString(curLayer->getProtocol());
+    }
+
+    packetData.append("Protocol: " + protocol + '\n');
+
+    packetData.append("Source: " + sourceAndDestination[0] + '\n'
+                      + "Destination: " + sourceAndDestination[1] + '\n');
+
+    pcpp::EthLayer* ethernetLayer = parsedPacket.getLayerOfType<pcpp::EthLayer>();
+    if (ethernetLayer)
+    {
+        packetData.append("Source MAC address: " + QString::fromStdString(ethernetLayer->getSourceMac().toString()) + '\n'
+                          + "Destination MAC address: " + QString::fromStdString(ethernetLayer->getDestMac().toString()) + '\n'
+                          + "Ether type = 0x" + QString::number(pcpp::netToHost16(ethernetLayer->getEthHeader()->etherType), 16) + '\n');
+    }
+
+    pcpp::IPv4Layer* ipLayer = parsedPacket.getLayerOfType<pcpp::IPv4Layer>();
+    if (ipLayer)
+    {
+        packetData.append("Source IP address: " + QString::fromStdString(ipLayer->getSrcIPAddress().toString()) + '\n'
+                          + "Destination IP address: " + QString::fromStdString(ipLayer->getDstIPAddress().toString() + '\n')
+                          + "IP ID = 0x" + QString::number(pcpp::netToHost16(ipLayer->getIPv4Header()->ipId), 16) + '\n'
+                          + "TTL: " + QString::number(ipLayer->getIPv4Header()->timeToLive) + '\n');
+    }
+
+    pcpp::TcpLayer* tcpLayer = parsedPacket.getLayerOfType<pcpp::TcpLayer>();
+    if (tcpLayer)
+    {
+        packetData.append("Source TCP port: " + QString::number(tcpLayer->getSrcPort()) + '\n'
+                          + "Destination TCP port: " + QString::number(tcpLayer->getDstPort()) + '\n'
+                          + "Window size: " + QString::number(pcpp::netToHost16(tcpLayer->getTcpHeader()->windowSize), 16) + '\n'
+                          + "TCP flags: " + getTcpFlags(tcpLayer) + '\n');
+    }
+
+    pcpp::HttpRequestLayer* httpRequestLayer = parsedPacket.getLayerOfType<pcpp::HttpRequestLayer>();
+    if (httpRequestLayer)
+    {
+        packetData.append("HTTP method: " + printHttpMethod(httpRequestLayer->getFirstLine()->getMethod()) + '\n'
+                          + "HTTP URI: " + QString::fromStdString(httpRequestLayer->getFirstLine()->getUri()) + '\n');
+    }
+
+    packetData.append("Raw bytes: " + QString::fromStdString(pcpp::byteArrayToHexString(rawPacket->getRawData(), rawPacket->getRawDataLen())));
+    return packetData;
+}
+
+QString PacketManager::getTcpFlags(pcpp::TcpLayer *tcpLayer)
+{
+    QString result = "";
+    if (tcpLayer->getTcpHeader()->synFlag == 1)
+        result += "SYN ";
+    if (tcpLayer->getTcpHeader()->ackFlag == 1)
+        result += "ACK ";
+    if (tcpLayer->getTcpHeader()->pshFlag == 1)
+        result += "PSH ";
+    if (tcpLayer->getTcpHeader()->cwrFlag == 1)
+        result += "CWR ";
+    if (tcpLayer->getTcpHeader()->urgFlag == 1)
+        result += "URG ";
+    if (tcpLayer->getTcpHeader()->eceFlag == 1)
+        result += "ECE ";
+    if (tcpLayer->getTcpHeader()->rstFlag == 1)
+        result += "RST ";
+    if (tcpLayer->getTcpHeader()->finFlag == 1)
+        result += "FIN ";
+
+    return result;
 }
