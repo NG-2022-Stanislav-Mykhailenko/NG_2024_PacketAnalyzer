@@ -81,6 +81,8 @@ void PacketAnalyzer::refresh()
 
 void PacketAnalyzer::packetSelected()
 {
+    if (ui->t_packets->selectedItems().length() == 0)
+        return;
     int packetId = ui->t_packets->selectedItems()[0]->text().toInt();
     pcpp::RawPacket* packet = m_packets.at(packetId-1);
     ui->e_selected->setText(PacketManager::getPacketData(packet));
