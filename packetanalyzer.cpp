@@ -44,6 +44,7 @@ void PacketAnalyzer::changeInterface(QString)
 void PacketAnalyzer::clear()
 {
     ui->t_packets->setRowCount(0);
+    ui->t_packets->sortItems(0);
     ui->e_selected->clear();
 }
 
